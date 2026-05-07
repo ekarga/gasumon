@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { ipcMain } from "electron";
+import { BrowserWindow, dialog, ipcMain } from "electron";
 import YAML from "yaml";
 
 const DEFAULT_VAULT = path.join(os.homedir(), "vault");
@@ -56,6 +56,22 @@ function buildPreview(body) {
     .replace(/\s+/g, " ")
     .trim();
   return cleaned.length > MAX_INDEX_PREVIEW ? `${cleaned.slice(0, MAX_INDEX_PREVIEW)}…` : cleaned;
+}
+
+/**
+ * Extract every Obsidian-style wikilink target from the body. Returns the
+ * raw target strings (left-of-pipe, no extension stripping) so the renderer
+ * can resolve them however it likes.
+ */
+function extractWikilinkTargets(body) {
+  const out = [];
+  const pattern = /\[\[([^\]\n|]+)(?:\|[^\]\n]+)?\]\]/g;
+  let match;
+  while ((match = pattern.exec(body)) !== null) {
+    const target = match[1]?.trim();
+    if (target) out.push(target);
+  }
+  return Array.from(new Set(out));
 }
 
 function isInsideVault(vaultRoot, target) {
@@ -200,10 +216,24 @@ async function handleReadIndex(_event, requestedRoot) {
       size: fileStat.size,
       frontmatter,
       preview: buildPreview(body),
+      outgoingLinks: extractWikilinkTargets(body),
     });
   }
 
   return { ok: true, root: resolvedRoot, entries: indexEntries };
+}
+
+async function handlePickPath(event) {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(browserWindow ?? undefined, {
+    title: "Choose vault folder",
+    properties: ["openDirectory", "createDirectory"],
+    defaultPath: DEFAULT_VAULT,
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { ok: false, canceled: true };
+  }
+  return { ok: true, path: result.filePaths[0] };
 }
 
 let registered = false;
@@ -215,4 +245,5 @@ export function registerVaultHandlers() {
   ipcMain.handle("openwork:vault:readFile", handleReadFile);
   ipcMain.handle("openwork:vault:resolveDefault", handleResolveDefault);
   ipcMain.handle("openwork:vault:readIndex", handleReadIndex);
+  ipcMain.handle("openwork:vault:pickPath", handlePickPath);
 }

@@ -112,6 +112,9 @@ contextBridge.exposeInMainWorld("__OPENWORK_ELECTRON__", {
     readIndex(rootPath) {
       return ipcRenderer.invoke("openwork:vault:readIndex", rootPath);
     },
+    pickPath() {
+      return ipcRenderer.invoke("openwork:vault:pickPath");
+    },
   },
   meta: {
     initialDeepLinks: [],

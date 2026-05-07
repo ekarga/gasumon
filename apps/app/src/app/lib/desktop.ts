@@ -85,6 +85,7 @@ declare global {
         readFile?: (rootPath: string, relPath: string) => Promise<unknown>;
         resolveDefault?: () => Promise<{ ok: boolean; path?: string; error?: string }>;
         readIndex?: (rootPath?: string) => Promise<unknown>;
+        pickPath?: () => Promise<{ ok: boolean; path?: string; canceled?: boolean }>;
       };
       meta?: {
         initialDeepLinks?: string[];

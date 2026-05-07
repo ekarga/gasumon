@@ -65,6 +65,7 @@ type VaultTreeProps = {
   error: string | null;
   vaultRoot: string | null;
   onRefresh: () => void;
+  onChangeRoot: () => void;
 };
 
 export function VaultTree(props: VaultTreeProps) {
@@ -75,9 +76,14 @@ export function VaultTree(props: VaultTreeProps) {
       <div className="flex items-center justify-between border-b border-dls-border/70 px-3 py-2">
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-11">Vault</div>
-          <div className="truncate text-[11px] text-gray-10" title={props.vaultRoot ?? ""}>
+          <button
+            type="button"
+            onClick={props.onChangeRoot}
+            className="block w-full truncate text-left text-[11px] text-gray-10 transition-colors hover:text-dls-accent"
+            title={`${props.vaultRoot ?? ""} (click to change)`}
+          >
             {props.vaultRoot ?? "no vault"}
-          </div>
+          </button>
         </div>
         <button
           type="button"

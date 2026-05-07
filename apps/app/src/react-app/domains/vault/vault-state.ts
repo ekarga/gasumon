@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   isVaultBridgeAvailable,
   listVaultTree,
+  pickVaultPath,
   readVaultFile,
   readVaultIndex,
   resolveDefaultVaultPath,
@@ -112,6 +113,9 @@ export type VaultState = {
   selectFile: (relPath: string) => void;
   refreshTree: () => Promise<void>;
   refreshIndex: () => Promise<void>;
+  pickAndSetVault: () => Promise<void>;
+  /** Backlinks for the currently selected file: paths of files that have a wikilink to it. */
+  backlinks: string[];
 };
 
 export function useVaultState(): VaultState {
@@ -206,6 +210,16 @@ export function useVaultState(): VaultState {
     void refreshIndex();
   }, [bridgeAvailable, vaultRoot, refreshIndex]);
 
+  const pickAndSetVault = useCallback(async () => {
+    if (!bridgeAvailable) return;
+    const result = await pickVaultPath();
+    if (!result.ok) return;
+    setVaultRoot(result.path);
+    writePersisted(VAULT_PATH_KEY, result.path);
+    setSelectedPath(null);
+    writePersisted(SELECTED_FILE_KEY, null);
+  }, [bridgeAvailable]);
+
   const allTags = useMemo(() => {
     const set = new Set<string>();
     for (const entry of index) {
@@ -299,6 +313,46 @@ export function useVaultState(): VaultState {
     };
   }, [bridgeAvailable, vaultRoot, selectedPath]);
 
+  // Resolve wikilink targets to vault paths and compute backlinks. The
+  // outgoingLinks list is built on the main side from the full file body,
+  // so backlinks are accurate beyond the preview window.
+  const stemToPath = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of index) {
+      if (!entry.name.toLowerCase().endsWith(".md")) continue;
+      const stem = entry.name.replace(/\.md$/i, "").toLowerCase();
+      if (!map.has(stem)) map.set(stem, entry.path);
+      const lowerPath = entry.path.toLowerCase();
+      if (!map.has(lowerPath)) map.set(lowerPath, entry.path);
+    }
+    return map;
+  }, [index]);
+
+  const outgoingByPath = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    for (const entry of index) {
+      const targets = new Set<string>();
+      for (const raw of entry.outgoingLinks) {
+        const target = raw.trim().toLowerCase();
+        if (!target) continue;
+        const resolved =
+          stemToPath.get(target) ?? stemToPath.get(`${target}.md`) ?? stemToPath.get(target.replace(/\.md$/, ""));
+        if (resolved && resolved !== entry.path) targets.add(resolved);
+      }
+      result.set(entry.path, targets);
+    }
+    return result;
+  }, [index, stemToPath]);
+
+  const backlinks = useMemo(() => {
+    if (!selectedPath) return [];
+    const out: string[] = [];
+    for (const [from, targets] of outgoingByPath) {
+      if (targets.has(selectedPath)) out.push(from);
+    }
+    return out.sort((a, b) => a.localeCompare(b));
+  }, [outgoingByPath, selectedPath]);
+
   return {
     bridgeAvailable,
     vaultRoot,
@@ -325,5 +379,7 @@ export function useVaultState(): VaultState {
     selectFile,
     refreshTree,
     refreshIndex,
+    pickAndSetVault,
+    backlinks,
   };
 }

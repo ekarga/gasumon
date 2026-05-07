@@ -97,18 +97,43 @@ export function VaultRoute() {
               void vault.refreshTree();
               void vault.refreshIndex();
             }}
+            onChangeRoot={() => {
+              void vault.pickAndSetVault();
+            }}
           />
         </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <VaultViewer
-          filePath={vault.selectedPath}
-          content={vault.fileContent}
-          loading={vault.fileLoading}
-          error={vault.fileError}
-          resolveWikilink={resolveWikilink}
-          onOpenPath={onOpenPath}
-        />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1">
+          <VaultViewer
+            filePath={vault.selectedPath}
+            content={vault.fileContent}
+            loading={vault.fileLoading}
+            error={vault.fileError}
+            resolveWikilink={resolveWikilink}
+            onOpenPath={onOpenPath}
+          />
+        </div>
+        {vault.selectedPath && vault.backlinks.length > 0 ? (
+          <div className="shrink-0 border-t border-dls-border/70 bg-dls-surface px-6 py-3">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-10">
+              Backlinks ({vault.backlinks.length})
+            </div>
+            <ul className="flex flex-wrap gap-2 text-[12px]">
+              {vault.backlinks.map((path) => (
+                <li key={path}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenPath(path)}
+                    className="rounded-md border border-dls-border px-2 py-1 font-mono text-gray-12 transition-colors hover:bg-dls-hover"
+                  >
+                    {path}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );
