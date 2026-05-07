@@ -14,6 +14,7 @@ import { ReactRenderWatchdogOverlay } from "./react-render-watchdog-overlay";
 import { OpenworkControlProvider, OpenworkRouteControlActions } from "./control/control-provider";
 import { SessionRoute } from "./session-route";
 import { SettingsRoute } from "./settings-route";
+import { VaultRoute } from "../domains/vault/vault-route";
 import { WelcomeRoute } from "./welcome-route";
 
 type DenSigninGateProps = {
@@ -158,6 +159,14 @@ export function AppRoot() {
                 element={
                   <DevProfiler id="SettingsRoute">
                     <SettingsRoute />
+                  </DevProfiler>
+                }
+              />
+              <Route
+                path="/vault"
+                element={
+                  <DevProfiler id="VaultRoute">
+                    <VaultRoute />
                   </DevProfiler>
                 }
               />

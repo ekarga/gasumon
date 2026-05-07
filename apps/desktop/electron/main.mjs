@@ -22,6 +22,7 @@ import { registerMigrationIpc } from "./migration.mjs";
 import { startBrowserMcpServers } from "./browser-mcp.mjs";
 import { createRuntimeManager } from "./runtime.mjs";
 import { registerUpdaterIpc } from "./updater.mjs";
+import { registerVaultHandlers } from "./vault.mjs";
 import { exportWorkspaceConfig, importWorkspaceConfig } from "./workspace-archive.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1924,6 +1925,10 @@ async function createMainWindow() {
 }
 
 ipcMain.handle("openwork:desktop", handleDesktopInvoke);
+
+// ── Vault IPC (file tree + markdown read for the vault sidebar) ────────
+registerVaultHandlers();
+
 ipcMain.handle("openwork:shell:openExternal", async (_event, url) => {
   if (typeof url === "string" && url.trim().length > 0) {
     await shell.openExternal(url);

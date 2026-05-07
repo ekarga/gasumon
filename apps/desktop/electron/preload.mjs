@@ -99,6 +99,17 @@ contextBridge.exposeInMainWorld("__OPENWORK_ELECTRON__", {
       return () => ipcRenderer.removeListener("openwork:browser:panel-closed", handler);
     },
   },
+  vault: {
+    listTree(rootPath) {
+      return ipcRenderer.invoke("openwork:vault:listTree", rootPath);
+    },
+    readFile(rootPath, relPath) {
+      return ipcRenderer.invoke("openwork:vault:readFile", rootPath, relPath);
+    },
+    resolveDefault() {
+      return ipcRenderer.invoke("openwork:vault:resolveDefault");
+    },
+  },
   meta: {
     initialDeepLinks: [],
     platform: normalizePlatform(process.platform),
