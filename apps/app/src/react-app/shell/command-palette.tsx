@@ -39,6 +39,8 @@ export type CommandPaletteProps = {
   onCreateNewSession: () => void;
   /** Called when "Open settings" is chosen. Accepts an optional route to jump straight to a tab. */
   onOpenSettings: (route?: string) => void;
+  /** Called when "Open vault" is chosen. Navigates to the markdown vault sidebar. */
+  onOpenVault?: () => void;
   /** Optional — open a URL in the user's browser. Falls back to window.open. */
   onOpenUrl?: (url: string) => void;
   /** Optional: sessions for the second mode. */
@@ -115,6 +117,20 @@ export function CommandPalette(props: CommandPaletteProps) {
           props.onOpenSettings();
         },
       },
+      ...(props.onOpenVault
+        ? [
+            {
+              id: "open-vault",
+              title: "Open vault",
+              detail: "Browse and read markdown notes from your local vault folder.",
+              meta: "Notes",
+              action: () => {
+                props.onClose();
+                props.onOpenVault?.();
+              },
+            },
+          ]
+        : []),
       // Top-bar shortcuts — these used to be selectable via Cmd+K and were
       // missing after the React port. Each one mirrors one of the icons at
       // the bottom-right of the session surface (documentation / feedback)

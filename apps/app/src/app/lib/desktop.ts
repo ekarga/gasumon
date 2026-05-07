@@ -80,6 +80,11 @@ declare global {
         onPanelOpened?: (callback: () => void) => () => void;
         onPanelClosed?: (callback: () => void) => () => void;
       };
+      vault?: {
+        listTree?: (rootPath?: string) => Promise<unknown>;
+        readFile?: (rootPath: string, relPath: string) => Promise<unknown>;
+        resolveDefault?: () => Promise<{ ok: boolean; path?: string; error?: string }>;
+      };
       meta?: {
         initialDeepLinks?: string[];
         platform?: "darwin" | "linux" | "windows";

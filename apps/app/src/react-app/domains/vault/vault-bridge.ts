@@ -20,21 +20,23 @@ export type ReadFileResult =
 type VaultBridge = {
   listTree(rootPath?: string): Promise<ListTreeResult>;
   readFile(rootPath: string, relPath: string): Promise<ReadFileResult>;
-  resolveDefault(): Promise<{ ok: true; path: string }>;
+  resolveDefault(): Promise<{ ok: true; path: string } | { ok: false; error: string }>;
 };
 
-declare global {
-  interface Window {
-    __OPENWORK_ELECTRON__?: {
-      vault?: VaultBridge;
-    };
-  }
-}
-
+// The canonical `Window.__OPENWORK_ELECTRON__` shape lives in
+// `src/app/lib/desktop.ts`; this module narrows the loosely-typed `vault`
+// namespace declared there into a strongly-typed bridge handle.
 function getBridge(): VaultBridge | null {
   if (typeof window === "undefined") return null;
   const electron = window.__OPENWORK_ELECTRON__;
-  return electron?.vault ?? null;
+  const raw = electron?.vault;
+  if (!raw || !raw.listTree || !raw.readFile || !raw.resolveDefault) return null;
+  return {
+    listTree: (rootPath?: string) => raw.listTree!(rootPath) as Promise<ListTreeResult>,
+    readFile: (rootPath: string, relPath: string) =>
+      raw.readFile!(rootPath, relPath) as Promise<ReadFileResult>,
+    resolveDefault: () => raw.resolveDefault!() as Promise<{ ok: true; path: string } | { ok: false; error: string }>,
+  };
 }
 
 export function isVaultBridgeAvailable(): boolean {
@@ -61,5 +63,5 @@ export async function resolveDefaultVaultPath(): Promise<string | null> {
   const bridge = getBridge();
   if (!bridge) return null;
   const result = await bridge.resolveDefault();
-  return result.ok ? result.path : null;
+  return result.ok && "path" in result ? result.path : null;
 }

@@ -2301,6 +2301,7 @@ export function SessionRoute() {
       }}
       onOpenSession={(workspaceId, sessionId) => navigateToWorkspaceSession(workspaceId, sessionId)}
       onOpenSettings={(route) => handleOpenSettings(route ?? "/settings/general")}
+      onOpenVault={() => navigate("/vault")}
       sessions={paletteSessionOptions}
     />
     <ModelPickerModal
