@@ -88,6 +88,10 @@ import {
 import { useShareWorkspaceState } from "../domains/workspace/share-workspace-state";
 import { ModelPickerModal } from "../domains/session/modals/model-picker-modal";
 import { CommandPalette, type SessionOption as PaletteSessionOption } from "./command-palette";
+import {
+  PROJECTS_OPEN_EVENT,
+  type ProjectsOpenEventDetail,
+} from "../domains/projects/projects-bridge";
 import { getDisplaySessionTitle } from "../../app/lib/session-title";
 import { useBootState } from "./boot-state";
 import {
@@ -2015,6 +2019,46 @@ export function SessionRoute() {
     }
   }, [client, local, navigateToWorkspaceSession, refreshRouteState]);
 
+  // Bridge from the /projects route. When the user clicks a Desktop folder,
+  // projects-bridge dispatches an event with {folderPath, name}. We either
+  // activate an existing workspace at that path (and open its most recent
+  // session) or fall through to handleCreateWorkspace which creates a new
+  // workspace + initial session and navigates to it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<ProjectsOpenEventDetail>).detail;
+      if (!detail || typeof detail.folderPath !== "string") return;
+      const folderPath = detail.folderPath.trim();
+      if (!folderPath) return;
+      const existing = workspaces.find(
+        (w) => (w.path?.trim() ?? "") === folderPath,
+      );
+      if (existing) {
+        void (async () => {
+          await workspaceSetSelected(existing.id).catch(() => undefined);
+          await workspaceSetRuntimeActive(existing.id).catch(() => undefined);
+          setLegacySelectedWorkspaceId(existing.id);
+          writeActiveWorkspaceId(existing.id);
+          const sessionsForWorkspace = sessionsByWorkspaceId[existing.id] ?? [];
+          const mostRecent = sessionsForWorkspace[0] ?? null;
+          navigateToWorkspaceSession(existing.id, mostRecent?.id ?? null, { replace: true });
+        })();
+        return;
+      }
+      void handleCreateWorkspace("starter", folderPath);
+    };
+    window.addEventListener(PROJECTS_OPEN_EVENT, handler as EventListener);
+    return () => {
+      window.removeEventListener(PROJECTS_OPEN_EVENT, handler as EventListener);
+    };
+  }, [
+    handleCreateWorkspace,
+    navigateToWorkspaceSession,
+    sessionsByWorkspaceId,
+    workspaces,
+  ]);
+
   const handleCreateRemoteWorkspace = useCallback(async (input: {
     openworkHostUrl?: string | null;
     openworkToken?: string | null;
@@ -2302,6 +2346,7 @@ export function SessionRoute() {
       onOpenSession={(workspaceId, sessionId) => navigateToWorkspaceSession(workspaceId, sessionId)}
       onOpenSettings={(route) => handleOpenSettings(route ?? "/settings/general")}
       onOpenVault={() => navigate("/vault")}
+      onOpenProjects={() => navigate("/projects")}
       sessions={paletteSessionOptions}
     />
     <ModelPickerModal

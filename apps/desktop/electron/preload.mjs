@@ -116,6 +116,11 @@ contextBridge.exposeInMainWorld("__OPENWORK_ELECTRON__", {
       return ipcRenderer.invoke("openwork:vault:pickPath");
     },
   },
+  projects: {
+    list(rootPath) {
+      return ipcRenderer.invoke("openwork:projects:list", rootPath);
+    },
+  },
   meta: {
     initialDeepLinks: [],
     platform: normalizePlatform(process.platform),

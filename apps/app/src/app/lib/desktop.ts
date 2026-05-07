@@ -87,6 +87,9 @@ declare global {
         readIndex?: (rootPath?: string) => Promise<unknown>;
         pickPath?: () => Promise<{ ok: boolean; path?: string; canceled?: boolean }>;
       };
+      projects?: {
+        list?: (rootPath?: string) => Promise<unknown>;
+      };
       meta?: {
         initialDeepLinks?: string[];
         platform?: "darwin" | "linux" | "windows";

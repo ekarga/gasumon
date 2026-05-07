@@ -41,6 +41,8 @@ export type CommandPaletteProps = {
   onOpenSettings: (route?: string) => void;
   /** Called when "Open vault" is chosen. Navigates to the markdown vault sidebar. */
   onOpenVault?: () => void;
+  /** Called when "Open projects" is chosen. Navigates to the Desktop projects view. */
+  onOpenProjects?: () => void;
   /** Optional — open a URL in the user's browser. Falls back to window.open. */
   onOpenUrl?: (url: string) => void;
   /** Optional: sessions for the second mode. */
@@ -117,6 +119,20 @@ export function CommandPalette(props: CommandPaletteProps) {
           props.onOpenSettings();
         },
       },
+      ...(props.onOpenProjects
+        ? [
+            {
+              id: "open-projects",
+              title: "Open projects",
+              detail: "Browse Desktop folders. Click one to open or create its workspace.",
+              meta: "Projects",
+              action: () => {
+                props.onClose();
+                props.onOpenProjects?.();
+              },
+            },
+          ]
+        : []),
       ...(props.onOpenVault
         ? [
             {

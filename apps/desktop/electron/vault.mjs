@@ -236,6 +236,65 @@ async function handlePickPath(event) {
   return { ok: true, path: result.filePaths[0] };
 }
 
+const DEFAULT_PROJECTS_ROOT = path.join(os.homedir(), "Desktop");
+const PROJECTS_SKIP = new Set([
+  ".DS_Store",
+  ".Trash",
+  ".localized",
+  "Library",
+  "Applications",
+  "Movies",
+  "Music",
+  "Pictures",
+  "Public",
+  "Sites",
+]);
+
+async function handleListProjects(_event, requestedRoot) {
+  const root = requestedRoot && typeof requestedRoot === "string" ? requestedRoot : DEFAULT_PROJECTS_ROOT;
+  const resolvedRoot = path.resolve(root);
+
+  let stat;
+  try {
+    stat = await fs.stat(resolvedRoot);
+  } catch {
+    return { ok: false, error: `projects path does not exist: ${resolvedRoot}` };
+  }
+  if (!stat.isDirectory()) {
+    return { ok: false, error: `projects path is not a directory: ${resolvedRoot}` };
+  }
+
+  let entries;
+  try {
+    entries = await fs.readdir(resolvedRoot, { withFileTypes: true });
+  } catch (error) {
+    return { ok: false, error: `cannot read projects root: ${String(error?.message ?? error)}` };
+  }
+
+  const out = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith(".")) continue;
+    if (PROJECTS_SKIP.has(entry.name)) continue;
+
+    const absPath = path.join(resolvedRoot, entry.name);
+    let folderStat;
+    try {
+      folderStat = await fs.stat(absPath);
+    } catch {
+      continue;
+    }
+    out.push({
+      name: entry.name,
+      path: absPath,
+      mtime: folderStat.mtimeMs,
+    });
+  }
+
+  out.sort((a, b) => b.mtime - a.mtime);
+  return { ok: true, root: resolvedRoot, projects: out };
+}
+
 let registered = false;
 
 export function registerVaultHandlers() {
@@ -246,4 +305,5 @@ export function registerVaultHandlers() {
   ipcMain.handle("openwork:vault:resolveDefault", handleResolveDefault);
   ipcMain.handle("openwork:vault:readIndex", handleReadIndex);
   ipcMain.handle("openwork:vault:pickPath", handlePickPath);
+  ipcMain.handle("openwork:projects:list", handleListProjects);
 }

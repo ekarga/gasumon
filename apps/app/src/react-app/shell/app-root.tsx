@@ -14,6 +14,7 @@ import { ReactRenderWatchdogOverlay } from "./react-render-watchdog-overlay";
 import { OpenworkControlProvider, OpenworkRouteControlActions } from "./control/control-provider";
 import { SessionRoute } from "./session-route";
 import { SettingsRoute } from "./settings-route";
+import { ProjectsRoute } from "../domains/projects/projects-route";
 import { VaultRoute } from "../domains/vault/vault-route";
 import { WelcomeRoute } from "./welcome-route";
 
@@ -167,6 +168,14 @@ export function AppRoot() {
                 element={
                   <DevProfiler id="VaultRoute">
                     <VaultRoute />
+                  </DevProfiler>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <DevProfiler id="ProjectsRoute">
+                    <ProjectsRoute />
                   </DevProfiler>
                 }
               />
