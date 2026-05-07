@@ -17,10 +17,26 @@ export type ReadFileResult =
   | { ok: true; path: string; content: string; size: number; mtime: number }
   | { ok: false; error: string };
 
+export type Frontmatter = Record<string, unknown> | null;
+
+export type IndexEntry = {
+  path: string;
+  name: string;
+  mtime: number;
+  size: number;
+  frontmatter: Frontmatter;
+  preview: string;
+};
+
+export type ReadIndexResult =
+  | { ok: true; root: string; entries: IndexEntry[] }
+  | { ok: false; error: string };
+
 type VaultBridge = {
   listTree(rootPath?: string): Promise<ListTreeResult>;
   readFile(rootPath: string, relPath: string): Promise<ReadFileResult>;
   resolveDefault(): Promise<{ ok: true; path: string } | { ok: false; error: string }>;
+  readIndex(rootPath?: string): Promise<ReadIndexResult>;
 };
 
 // The canonical `Window.__OPENWORK_ELECTRON__` shape lives in
@@ -30,12 +46,13 @@ function getBridge(): VaultBridge | null {
   if (typeof window === "undefined") return null;
   const electron = window.__OPENWORK_ELECTRON__;
   const raw = electron?.vault;
-  if (!raw || !raw.listTree || !raw.readFile || !raw.resolveDefault) return null;
+  if (!raw || !raw.listTree || !raw.readFile || !raw.resolveDefault || !raw.readIndex) return null;
   return {
     listTree: (rootPath?: string) => raw.listTree!(rootPath) as Promise<ListTreeResult>,
     readFile: (rootPath: string, relPath: string) =>
       raw.readFile!(rootPath, relPath) as Promise<ReadFileResult>,
     resolveDefault: () => raw.resolveDefault!() as Promise<{ ok: true; path: string } | { ok: false; error: string }>,
+    readIndex: (rootPath?: string) => raw.readIndex!(rootPath) as Promise<ReadIndexResult>,
   };
 }
 
@@ -57,6 +74,14 @@ export async function readVaultFile(rootPath: string, relPath: string): Promise<
     return { ok: false, error: "vault bridge not available (running outside Electron)" };
   }
   return bridge.readFile(rootPath, relPath);
+}
+
+export async function readVaultIndex(rootPath?: string): Promise<ReadIndexResult> {
+  const bridge = getBridge();
+  if (!bridge) {
+    return { ok: false, error: "vault bridge not available (running outside Electron)" };
+  }
+  return bridge.readIndex(rootPath);
 }
 
 export async function resolveDefaultVaultPath(): Promise<string | null> {

@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { useCallback, useMemo } from "react";
 
+import { VaultFilters } from "./vault-filters";
 import { useVaultState } from "./vault-state";
 import { VaultTree } from "./vault-tree";
 import { VaultViewer } from "./vault-viewer";
@@ -68,18 +69,36 @@ export function VaultRoute() {
   return (
     <div className="flex h-full min-h-0 w-full">
       <div
-        className="shrink-0 border-r border-dls-border/70"
+        className="flex shrink-0 flex-col border-r border-dls-border/70"
         style={{ width: `${SIDEBAR_WIDTH}px` }}
       >
-        <VaultTree
-          entries={vault.entries}
-          selectedPath={vault.selectedPath}
-          onSelect={vault.selectFile}
-          loading={vault.loading}
-          error={vault.error}
-          vaultRoot={vault.vaultRoot}
-          onRefresh={() => void vault.refreshTree()}
+        <VaultFilters
+          searchQuery={vault.searchQuery}
+          onSearchChange={vault.setSearchQuery}
+          allTags={vault.allTags}
+          allStatuses={vault.allStatuses}
+          selectedTag={vault.selectedTag}
+          selectedStatus={vault.selectedStatus}
+          onSelectTag={vault.setSelectedTag}
+          onSelectStatus={vault.setSelectedStatus}
+          loading={vault.indexLoading}
+          matchedCount={vault.filteredIndex.length}
+          totalCount={vault.index.length}
         />
+        <div className="min-h-0 flex-1">
+          <VaultTree
+            entries={vault.visibleEntries}
+            selectedPath={vault.selectedPath}
+            onSelect={vault.selectFile}
+            loading={vault.loading}
+            error={vault.error}
+            vaultRoot={vault.vaultRoot}
+            onRefresh={() => {
+              void vault.refreshTree();
+              void vault.refreshIndex();
+            }}
+          />
+        </div>
       </div>
       <div className="min-w-0 flex-1">
         <VaultViewer

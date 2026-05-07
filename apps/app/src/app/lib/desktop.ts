@@ -84,6 +84,7 @@ declare global {
         listTree?: (rootPath?: string) => Promise<unknown>;
         readFile?: (rootPath: string, relPath: string) => Promise<unknown>;
         resolveDefault?: () => Promise<{ ok: boolean; path?: string; error?: string }>;
+        readIndex?: (rootPath?: string) => Promise<unknown>;
       };
       meta?: {
         initialDeepLinks?: string[];

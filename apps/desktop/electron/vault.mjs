@@ -2,10 +2,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { ipcMain } from "electron";
+import YAML from "yaml";
 
 const DEFAULT_VAULT = path.join(os.homedir(), "vault");
 const MAX_TREE_ENTRIES = 5000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_INDEX_FILES = 2000;
+const MAX_INDEX_PREVIEW = 400;
 const SKIP_DIRS = new Set([
   ".git",
   "node_modules",
@@ -13,6 +16,47 @@ const SKIP_DIRS = new Set([
   ".trash",
   ".DS_Store",
 ]);
+
+/** Parse frontmatter from a markdown buffer. Returns { frontmatter, body }. */
+function parseFrontmatter(text) {
+  if (!text.startsWith("---")) return { frontmatter: null, body: text };
+  // Find the closing fence at the start of a line.
+  const closing = text.indexOf("\n---", 3);
+  if (closing === -1) return { frontmatter: null, body: text };
+  // The closing must be followed by a newline or EOF.
+  const after = closing + 4;
+  const next = text[after];
+  if (next !== undefined && next !== "\n" && next !== "\r") {
+    return { frontmatter: null, body: text };
+  }
+  const yamlSlice = text.slice(3, closing).trim();
+  let parsed;
+  try {
+    parsed = YAML.parse(yamlSlice);
+  } catch {
+    return { frontmatter: null, body: text };
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { frontmatter: null, body: text };
+  }
+  const body = text.slice(after + (next === "\n" ? 1 : 2));
+  return { frontmatter: parsed, body };
+}
+
+/** Build a short plain-text preview from a markdown body, with frontmatter already stripped. */
+function buildPreview(body) {
+  // Strip headings, code fences, link syntax for a cleaner preview.
+  const cleaned = body
+    .replace(/^```[\s\S]*?```/gm, "")
+    .replace(/^#+\s*/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\[\[([^\]\n|]+)(?:\|[^\]\n]+)?\]\]/g, "$1")
+    .replace(/[*_`>#-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > MAX_INDEX_PREVIEW ? `${cleaned.slice(0, MAX_INDEX_PREVIEW)}…` : cleaned;
+}
 
 function isInsideVault(vaultRoot, target) {
   const resolvedRoot = path.resolve(vaultRoot);
@@ -109,6 +153,59 @@ function handleResolveDefault() {
   return { ok: true, path: DEFAULT_VAULT };
 }
 
+async function handleReadIndex(_event, requestedRoot) {
+  const root = requestedRoot && typeof requestedRoot === "string" ? requestedRoot : DEFAULT_VAULT;
+  const resolvedRoot = path.resolve(root);
+
+  let stat;
+  try {
+    stat = await fs.stat(resolvedRoot);
+  } catch {
+    return { ok: false, error: `vault path does not exist: ${resolvedRoot}` };
+  }
+  if (!stat.isDirectory()) {
+    return { ok: false, error: `vault path is not a directory: ${resolvedRoot}` };
+  }
+
+  const treeEntries = [];
+  await listTreeRecursive(resolvedRoot, resolvedRoot, treeEntries, 0);
+
+  const indexEntries = [];
+  for (const entry of treeEntries) {
+    if (indexEntries.length >= MAX_INDEX_FILES) break;
+    if (entry.type !== "file") continue;
+    if (!entry.name.toLowerCase().endsWith(".md")) continue;
+
+    const absPath = path.join(resolvedRoot, entry.path);
+    let fileStat;
+    try {
+      fileStat = await fs.stat(absPath);
+    } catch {
+      continue;
+    }
+    if (fileStat.size > MAX_FILE_BYTES) continue;
+
+    let raw;
+    try {
+      raw = await fs.readFile(absPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    const { frontmatter, body } = parseFrontmatter(raw);
+    indexEntries.push({
+      path: entry.path,
+      name: entry.name,
+      mtime: fileStat.mtimeMs,
+      size: fileStat.size,
+      frontmatter,
+      preview: buildPreview(body),
+    });
+  }
+
+  return { ok: true, root: resolvedRoot, entries: indexEntries };
+}
+
 let registered = false;
 
 export function registerVaultHandlers() {
@@ -117,4 +214,5 @@ export function registerVaultHandlers() {
   ipcMain.handle("openwork:vault:listTree", handleListTree);
   ipcMain.handle("openwork:vault:readFile", handleReadFile);
   ipcMain.handle("openwork:vault:resolveDefault", handleResolveDefault);
+  ipcMain.handle("openwork:vault:readIndex", handleReadIndex);
 }
