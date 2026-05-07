@@ -1,0 +1,100 @@
+name: Sync upstream
+
+# Keeps this fork's `dev` branch fast-forwarded to
+# `different-ai/openwork:dev`. Runs daily and on demand.
+#
+# - Custom feature branches (e.g. `feat/vault-sidebar`) are NOT touched here;
+#   rebase them onto `dev` manually when you want upstream changes.
+# - If `dev` cannot fast-forward (because you committed directly to it), the
+#   workflow opens an issue describing the divergence rather than overwriting.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/different-ai/openwork.git || true
+          git fetch upstream
+
+      - name: Fast-forward dev to upstream/dev
+        id: ff
+        run: |
+          BEFORE=$(git rev-parse HEAD)
+          if git merge --ff-only upstream/dev; then
+            AFTER=$(git rev-parse HEAD)
+            if [ "$BEFORE" = "$AFTER" ]; then
+              echo "result=already-up-to-date" >> "$GITHUB_OUTPUT"
+              echo "Already up to date with upstream/dev"
+            else
+              echo "result=fast-forwarded" >> "$GITHUB_OUTPUT"
+              echo "$BEFORE -> $AFTER"
+            fi
+          else
+            echo "result=diverged" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+      - name: Push updated dev
+        if: steps.ff.outputs.result == 'fast-forwarded'
+        run: git push origin dev
+
+      - name: Open issue on divergence
+        if: steps.ff.outputs.result == 'diverged'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Upstream sync: dev diverged from different-ai/openwork:dev";
+            const list = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "upstream-sync",
+            });
+            if (list.data.some(i => i.title === title)) {
+              core.info("Existing divergence issue is open; skipping create");
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ["upstream-sync"],
+              body: [
+                "The scheduled `Sync upstream` workflow could not fast-forward `dev`",
+                "because the local branch has commits that are not in",
+                "`different-ai/openwork:dev`.",
+                "",
+                "Resolve manually:",
+                "",
+                "```bash",
+                "git fetch upstream",
+                "git checkout dev",
+                "git rebase upstream/dev",
+                "git push --force-with-lease origin dev",
+                "```",
+                "",
+                "Close this issue once `dev` is fast-forwardable again.",
+              ].join("\n"),
+            });
