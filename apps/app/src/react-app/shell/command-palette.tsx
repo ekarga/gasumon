@@ -43,6 +43,8 @@ export type CommandPaletteProps = {
   onOpenVault?: () => void;
   /** Called when "Open projects" is chosen. Navigates to the Desktop projects view. */
   onOpenProjects?: () => void;
+  /** Called when "Open todos" is chosen. Navigates to the TODO.md dashboard for the active project. */
+  onOpenTodos?: () => void;
   /** Optional — open a URL in the user's browser. Falls back to window.open. */
   onOpenUrl?: (url: string) => void;
   /** Optional: sessions for the second mode. */
@@ -129,6 +131,20 @@ export function CommandPalette(props: CommandPaletteProps) {
               action: () => {
                 props.onClose();
                 props.onOpenProjects?.();
+              },
+            },
+          ]
+        : []),
+      ...(props.onOpenTodos
+        ? [
+            {
+              id: "open-todos",
+              title: "Open todos",
+              detail: "Read or edit TODO.md at the active project root. Agents read this too.",
+              meta: "Todos",
+              action: () => {
+                props.onClose();
+                props.onOpenTodos?.();
               },
             },
           ]

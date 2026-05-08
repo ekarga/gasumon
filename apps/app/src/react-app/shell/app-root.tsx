@@ -15,6 +15,7 @@ import { OpenworkControlProvider, OpenworkRouteControlActions } from "./control/
 import { SessionRoute } from "./session-route";
 import { SettingsRoute } from "./settings-route";
 import { ProjectsRoute } from "../domains/projects/projects-route";
+import { TodosRoute } from "../domains/todos/todos-route";
 import { VaultRoute } from "../domains/vault/vault-route";
 import { WelcomeRoute } from "./welcome-route";
 
@@ -176,6 +177,14 @@ export function AppRoot() {
                 element={
                   <DevProfiler id="ProjectsRoute">
                     <ProjectsRoute />
+                  </DevProfiler>
+                }
+              />
+              <Route
+                path="/todos"
+                element={
+                  <DevProfiler id="TodosRoute">
+                    <TodosRoute />
                   </DevProfiler>
                 }
               />

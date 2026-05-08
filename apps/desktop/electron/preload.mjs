@@ -121,6 +121,14 @@ contextBridge.exposeInMainWorld("__OPENWORK_ELECTRON__", {
       return ipcRenderer.invoke("openwork:projects:list", rootPath);
     },
   },
+  todo: {
+    read(projectPath) {
+      return ipcRenderer.invoke("openwork:todo:read", projectPath);
+    },
+    write(projectPath, content) {
+      return ipcRenderer.invoke("openwork:todo:write", projectPath, content);
+    },
+  },
   meta: {
     initialDeepLinks: [],
     platform: normalizePlatform(process.platform),

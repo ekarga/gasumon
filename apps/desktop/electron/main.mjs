@@ -22,6 +22,7 @@ import { registerMigrationIpc } from "./migration.mjs";
 import { startBrowserMcpServers } from "./browser-mcp.mjs";
 import { createRuntimeManager } from "./runtime.mjs";
 import { registerUpdaterIpc } from "./updater.mjs";
+import { registerTodoHandlers } from "./todos.mjs";
 import { registerVaultHandlers } from "./vault.mjs";
 import { exportWorkspaceConfig, importWorkspaceConfig } from "./workspace-archive.mjs";
 
@@ -1928,6 +1929,9 @@ ipcMain.handle("openwork:desktop", handleDesktopInvoke);
 
 // ── Vault IPC (file tree + markdown read for the vault sidebar) ────────
 registerVaultHandlers();
+
+// ── Todo IPC (read/write TODO.md at the active project root) ───────────
+registerTodoHandlers();
 
 ipcMain.handle("openwork:shell:openExternal", async (_event, url) => {
   if (typeof url === "string" && url.trim().length > 0) {

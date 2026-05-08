@@ -90,6 +90,10 @@ declare global {
       projects?: {
         list?: (rootPath?: string) => Promise<unknown>;
       };
+      todo?: {
+        read?: (projectPath: string) => Promise<unknown>;
+        write?: (projectPath: string, content: string) => Promise<unknown>;
+      };
       meta?: {
         initialDeepLinks?: string[];
         platform?: "darwin" | "linux" | "windows";

@@ -2347,6 +2347,15 @@ export function SessionRoute() {
       onOpenSettings={(route) => handleOpenSettings(route ?? "/settings/general")}
       onOpenVault={() => navigate("/vault")}
       onOpenProjects={() => navigate("/projects")}
+      onOpenTodos={() => {
+        const activeWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId);
+        const projectPath = activeWorkspace?.path?.trim() ?? "";
+        if (!projectPath) {
+          navigate("/todos");
+          return;
+        }
+        navigate(`/todos?path=${encodeURIComponent(projectPath)}`);
+      }}
       sessions={paletteSessionOptions}
     />
     <ModelPickerModal
