@@ -34,7 +34,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "electron": "^35.0.0",
+    "electron": "^39.8.10",
     "electron-builder": "^25.1.8",
     "electron-devtools-installer": "^4.0.0"
   },
