@@ -24,7 +24,7 @@
     "prepare:sidecar": "node ./scripts/prepare-sidecar.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "better-sqlite3": "^11.10.0",
     "chrome-devtools-mcp": "0.17.0",
     "electron-updater": "^6.3.9",
